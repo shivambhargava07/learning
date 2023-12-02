@@ -1,0 +1,51 @@
+#!/bin/bash
+
+login()
+{
+    az account show -o table
+    if [ $? -eq 0 ];
+    then
+        echo "Logged In successfully"
+    else
+        #install cli
+        curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+        az login --use-device-code
+        echo "Logged In successfully"
+    fi
+}
+
+check_resource_group_exists()
+{
+    while true; do
+        read -p "Enter resource group name: " resource_group_name
+        if [ $(az group exists --name $resource_group_name) == true ]; 
+        then
+            break
+        else
+            echo "ResourceGroup $resource_group_name exists does not exists"
+            continue
+        fi
+    done
+}
+
+delete_resource_group()
+{
+    read -p "ResourceGroup exists.Do you want to delete. Y/N? " prompt
+    if [[ "$prompt" -eq "Y" ]];
+    then
+        az group delete -g $resource_group_name -y
+        echo "ResourceGroup $resource_group_name deleted successfully"
+    else
+        break;
+    fi
+}
+
+list_resource_group()
+{
+    az group list -o table
+}
+
+login
+check_resource_group_exists
+delete_resource_group
+list_resource_group

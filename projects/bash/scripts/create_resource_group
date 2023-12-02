@@ -1,0 +1,76 @@
+#!/bin/bash
+
+login()
+{
+    az account show -o table
+    if [ $? -eq 0 ];
+    then
+        echo "Logged In successfully"
+    else
+        #install cli
+        curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+        az login --use-device-code
+        echo "Logged In successfully"
+    fi
+}
+
+print_location()
+{
+    locations_array=($(az account list-locations --query "[?metadata.regionCategory=='Recommended'].{Name:name}" -o tsv | head -n 5))
+    for location in "${locations_array[@]}"
+    do
+        echo $location
+    done
+    echo "Choose location from above list"
+}
+
+select_location()
+{
+    local is_location_selected=false
+    while [[ "$is_location_selected" = false ]]; do
+        print_location
+        echo "provide location name: "
+        read selected_location
+        for j in "${locations_array[@]}"
+        do
+            echo $j
+            if [[ "$selected_location" == "$j" ]]; then
+                is_location_selected=true
+                echo "selected location name is $selected_location"
+                break
+            else
+                continue
+            fi
+        done
+    done
+}
+
+check_resource_group_exists()
+{
+    while true; do
+        read -p "Enter resource group name: " resource_group_name
+        if [ $(az group exists --name $resource_group_name) == true ]; 
+        then
+            echo "ResourceGroup $resource_group_name already exists in $selected_location. Please provide unique name."
+        else
+            break
+        fi
+    done
+}
+
+create_resource_group()
+{
+    az group create -g $resource_group_name -l $selected_location | grep -i "provisioningstate"
+    echo "ResourceGroup $resource_group_name under $selected_location location created successfully"
+}
+
+list_resource_group()
+{
+    az group list --query "[?location=='$selected_location']" -o table
+}
+
+login
+select_location
+check_resource_group_exists
+create_resource_group
+list_resource_group
